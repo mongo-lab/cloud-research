@@ -1,0 +1,8 @@
+#kafka创建topic
+./kafka-topics.sh --create --topic source --replication-factor 1 --partitions 1 --zookeeper 172.24.9.30:2181/kafka
+./kafka-topics.sh --create --topic topic1 --replication-factor 1 --partitions 1 --zookeeper 172.24.9.30:2181/kafka
+./kafka-topics.sh --create --topic topic2 --replication-factor 1 --partitions 1 --zookeeper 172.24.9.30:2181/kafka
+./kafka-topics.sh --create --topic topic3 --replication-factor 1 --partitions 1 --zookeeper 172.24.9.30:2181/kafka
+
+#kafka消费者测试
+./bin/kafka-console-consumer.sh --topic source --zookeeper 172.24.9.30:2181/kafka

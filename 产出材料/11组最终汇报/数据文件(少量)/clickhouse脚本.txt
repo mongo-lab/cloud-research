@@ -1,0 +1,69 @@
+# taxi数据临时表
+
+CREATE TABLE trips \ 
+(vendor_id String, \
+pickup_date String, \
+pickup_datetime String, \
+dropoff_date Nullable(String), \
+dropoff_datetime Nullable(String), \
+store_and_fwd_flag Nullable(String), \
+pickup_longitude Nullable(Float64), \
+pickup_latitude Nullable(Float64), \ 
+dropoff_longitude Nullable(Float64), \
+dropoff_latitude Nullable(Float64), \
+passenger_count Nullable(UInt8), \
+trip_distance Nullable(Float64), \
+fare_amount Nullable(Float32), \
+extra Nullable(Float32), \
+mta_tax Nullable(Float32), \
+tip_amount Nullable(Float32), \
+tolls_amount Nullable(Float32), \
+ehail_fee Nullable(Float32), \
+pickup Nullable(String), \
+trip_type Nullable(UInt8) \
+) ENGINE = Log;
+
+#数据导入脚本
+time (cat /opt/research/install/taxi_data/taxi_split.csv*|awk '{printf("%s\n",$0)}'|sed 's/"//g'|sed 's/,/\t/g'|sed -E '/(.*,){18,}/d' |clickhouse-client --host=172.24.9.30 --query="INSERT INTO trips FORMAT TSV")
+
+#导入数据到mergetree引擎
+
+CREATE TABLE trips_mergetree \
+ENGINE = MergeTree(pickup_date, pickup_datetime, 8192) \
+AS SELECT \
+vendor_id, \
+toDate(pickup_datetime) AS pickup_date,\
+ pickup_datetime,\
+toDate(dropoff_datetime) AS dropoff_date,\
+ dropoff_datetime, \
+store_and_fwd_flag, \
+pickup_longitude, \
+ pickup_latitude, \
+dropoff_longitude, \
+dropoff_latitude, \
+ passenger_count, \
+ trip_distance, \
+ fare_amount, \
+ extra, \
+ mta_tax, \
+ tip_amount, \
+ tolls_amount, \
+ ehail_fee FROM trips ;
+
+ #最终clickhouse数据表
+
+ CREATE TABLE t_flink \ 
+ (vendor_id String, \
+ cost_time int, \
+ store_and_fwd_flag Nullable(String), \
+ pickup_longitude Nullable(Float64), \
+ pickup_latitude Nullable(Float64), \ 
+ dropoff_longitude Nullable(Float64), \
+ dropoff_latitude Nullable(Float64), \
+ passenger_count Nullable(UInt8), \
+ trip_distance Nullable(Float64), \
+ cost_amount Nullable(Float32), \
+ pickup Nullable(String), \
+ trip_type Nullable(UInt8) \
+ ) ENGINE = MergeTree order by vendor_id;
+ 

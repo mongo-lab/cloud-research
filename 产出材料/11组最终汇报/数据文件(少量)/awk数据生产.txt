@@ -1,0 +1,4 @@
+#awk脚本测试数据
+clickhouse-client --host=172.24.9.30 --query="select * from trips_mergetree limit 10"| \
+awk '{printf "{\"vendor_id\":\"%s\",\"pickup_date\":\"%s\",\"pickup_datetime\":\"%s\",\"dropoff_date\":\"%s\",\"dropoff_datetime\":\"%s\",\"store_and_fwd_flag\":\"%s\",\"pickup_longitude\":\"%s\",\"pickup_latitude\":\"%s\",\"dropoff_longitude\":\"%s\",\"dropoff_latitude\":\"%s\",\"passenger_count\":\"%s\",\"trip_distance\":\"%s\",\"fare_amount\":\"%s\",\"extra\":\"%s\",\"mta_tax\":\"%s\",\"tip_amount\":\"%s\",\"tolls_amount\":\"%s\",\"ehail_fee\":\"%s\",\"pickup\":\"%s\",\"trip_type\":\"%s\"}\n",$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20}' |\
+./bin/kafka-console-producer.sh --broker-list 172.24.9.30:6667 --topic source

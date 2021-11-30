@@ -1,0 +1,300 @@
+#flinkjob1 写入 topic1.基础信息表，全部数据
+CREATE TABLE flink1_kafka_source (
+vendor_id string, 
+pickup_date string, 
+pickup_datetime string, 
+dropoff_date string, 
+dropoff_datetime string, 
+store_and_fwd_flag string, 
+pickup_longitude float, 
+pickup_latitude float,  
+dropoff_longitude float, 
+dropoff_latitude float, 
+passenger_count int, 
+trip_distance float, 
+fare_amount float, 
+extra float, 
+mta_tax float, 
+tip_amount float, 
+tolls_amount float, 
+ehail_fee float, 
+pickup string, 
+trip_type int 
+) WITH (
+'connector' = 'kafka',
+'topic' = 'test',
+'properties.bootstrap.servers' = '172.24.9.30:6667',
+'properties.group.id' = 'flink1',
+'scan.startup.mode' = 'earliest-offset',
+'format' = 'json',
+'json.ignore-parse-errors' = 'true'
+);
+CREATE TABLE flink1_kafka_topic1(
+vendor_id string, 
+pickup_date string, 
+pickup_datetime string, 
+dropoff_date string, 
+dropoff_datetime string, 
+store_and_fwd_flag string, 
+pickup_longitude float, 
+pickup_latitude float,  
+dropoff_longitude float, 
+dropoff_latitude float, 
+passenger_count int, 
+trip_distance float, 
+fare_amount float, 
+extra float, 
+mta_tax float, 
+tip_amount float, 
+tolls_amount float, 
+ehail_fee float, 
+pickup string, 
+trip_type int 
+) WITH (
+'connector' = 'kafka',
+'topic' = 'topic1',
+'properties.bootstrap.servers' = '172.24.9.30:6667',
+'properties.group.id' = 'flink1',
+'scan.startup.mode' = 'earliest-offset',
+'format' = 'json',
+'json.ignore-parse-errors' = 'true'
+);
+insert into flink1_kafka_topic1
+select
+*
+from flink1_kafka_source ;
+
+
+#flinkjob2 写入topic2.通勤时长表，记录出行时间
+
+CREATE TABLE flink2_kafka_topic1 (
+vendor_id string, 
+pickup_date string, 
+pickup_datetime string, 
+dropoff_date string, 
+dropoff_datetime string,
+store_and_fwd_flag string, 
+pickup_longitude float, 
+pickup_latitude float,  
+dropoff_longitude float, 
+dropoff_latitude float, 
+passenger_count int, 
+trip_distance float, 
+fare_amount float, 
+extra float, 
+mta_tax float, 
+tip_amount float, 
+tolls_amount float, 
+ehail_fee float, 
+pickup string, 
+trip_type int 
+) WITH (
+'connector' = 'kafka',
+'topic' = 'topic1',
+'properties.bootstrap.servers' = '172.24.9.30:6667',
+'properties.group.id' = 'flink2',
+'scan.startup.mode' = 'earliest-offset',
+'format' = 'json',
+'json.ignore-parse-errors' = 'true'
+);
+
+CREATE TABLE flink2_kafka_topic2(
+vendor_id string, 
+cost_time bigint,
+store_and_fwd_flag string, 
+pickup_longitude float, 
+pickup_latitude float,  
+dropoff_longitude float, 
+dropoff_latitude float, 
+passenger_count int, 
+trip_distance float, 
+fare_amount float, 
+extra float, 
+mta_tax float, 
+tip_amount float, 
+tolls_amount float, 
+ehail_fee float, 
+pickup string, 
+trip_type int 
+) WITH (
+'connector' = 'kafka',
+'topic' = 'topic2',
+'properties.bootstrap.servers' = '172.24.9.30:6667',
+'properties.group.id' = 'flink2',
+'scan.startup.mode' = 'earliest-offset',
+'format' = 'json',
+'json.ignore-parse-errors' = 'true'
+);
+insert into flink2_kafka_topic2
+select 
+vendor_id , 
+(a.t1-a.t2) as cost_time,
+store_and_fwd_flag , 
+pickup_longitude , 
+pickup_latitude ,  
+dropoff_longitude , 
+dropoff_latitude , 
+passenger_count , 
+trip_distance , 
+fare_amount , 
+extra , 
+mta_tax , 
+tip_amount , 
+tolls_amount , 
+ehail_fee , 
+pickup , 
+trip_type
+ from
+(select vendor_id , 
+UNIX_TIMESTAMP(pickup_datetime) t1,
+UNIX_TIMESTAMP(dropoff_datetime) t2,
+store_and_fwd_flag , 
+pickup_longitude , 
+pickup_latitude ,  
+dropoff_longitude , 
+dropoff_latitude , 
+passenger_count , 
+trip_distance , 
+fare_amount , 
+extra , 
+mta_tax , 
+tip_amount , 
+tolls_amount , 
+ehail_fee , 
+pickup , 
+trip_type  
+from flink2_kafka_topic1) a
+ ;
+
+ #flinkjob3 写入topic3.行程金额表，记录总金额
+
+ CREATE TABLE flink3_kafka_topic2 (
+vendor_id string, 
+cost_time bigint, 
+store_and_fwd_flag string, 
+pickup_longitude float, 
+pickup_latitude float,  
+dropoff_longitude float, 
+dropoff_latitude float, 
+passenger_count int, 
+trip_distance float, 
+fare_amount float, 
+extra float, 
+mta_tax float, 
+tip_amount float, 
+tolls_amount float, 
+ehail_fee float, 
+pickup string, 
+trip_type int 
+) WITH (
+'connector' = 'kafka',
+'topic' = 'topic2',
+'properties.bootstrap.servers' = '172.24.9.30:6667',
+'properties.group.id' = 'flink3',
+'scan.startup.mode' = 'earliest-offset',
+'format' = 'json',
+'json.ignore-parse-errors' = 'true'
+);
+
+CREATE TABLE flink3_kafka_topic3(
+vendor_id string, 
+cost_time bigint,
+store_and_fwd_flag string, 
+pickup_longitude float, 
+pickup_latitude float,  
+dropoff_longitude float, 
+dropoff_latitude float, 
+passenger_count int, 
+trip_distance float, 
+cost_amount float,
+pickup string, 
+trip_type int 
+) WITH (
+'connector' = 'kafka',
+'topic' = 'topic3',
+'properties.bootstrap.servers' = '172.24.9.30:6667',
+'properties.group.id' = 'flink3',
+'scan.startup.mode' = 'earliest-offset',
+'format' = 'json',
+'json.ignore-parse-errors' = 'true'
+);
+insert into flink3_kafka_topic3
+select 
+vendor_id , 
+cost_time,
+store_and_fwd_flag , 
+pickup_longitude , 
+pickup_latitude ,  
+dropoff_longitude , 
+dropoff_latitude , 
+passenger_count , 
+trip_distance , 
+(fare_amount+extra+mta_tax+tip_amount+tolls_amount+ehail_fee) as cost_amount,
+pickup , 
+trip_type
+ from
+  flink3_kafka_topic2
+ ;
+
+#flinkjob4 写入ck 所有数据
+
+ CREATE TABLE flink4_kafka_topic3 (
+vendor_id string, 
+cost_time bigint,
+store_and_fwd_flag string, 
+pickup_longitude float, 
+pickup_latitude float,  
+dropoff_longitude float, 
+dropoff_latitude float, 
+passenger_count int, 
+trip_distance float, 
+cost_amount float,
+pickup string, 
+trip_type int 
+) WITH (
+'connector' = 'kafka',
+'topic' = 'topic3',
+'properties.bootstrap.servers' = '172.24.9.30:6667',
+'properties.group.id' = 'flink4',
+'scan.startup.mode' = 'earliest-offset',
+'format' = 'json',
+'json.ignore-parse-errors' = 'true'
+);
+
+CREATE TABLE flink4(
+vendor_id string, 
+cost_time bigint,
+store_and_fwd_flag string, 
+pickup_longitude float, 
+pickup_latitude float,  
+dropoff_longitude float, 
+dropoff_latitude float, 
+passenger_count int, 
+trip_distance float, 
+cost_amount float,
+pickup string, 
+trip_type int 
+) WITH (
+    'connector' = 'clickhouse',
+    'url' = 'jdbc:clickhouse://172.24.9.30:8123',
+    'userName' = 'default',
+    'password' = '',
+    'tableName' = 't_flink',
+);
+insert into flink4
+select 
+vendor_id , 
+cost_time,
+store_and_fwd_flag , 
+pickup_longitude , 
+pickup_latitude ,  
+dropoff_longitude , 
+dropoff_latitude , 
+passenger_count , 
+trip_distance , 
+cost_amount,
+pickup , 
+trip_type
+ from
+  flink4_kafka_topic3
+ ;
